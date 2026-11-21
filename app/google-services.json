@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "747479997763",
+    "project_id": "tayawaste",
+    "storage_bucket": "tayawaste.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747479997763:android:95e5dd7d2acee2bcdba3f6",
+        "android_client_info": {
+          "package_name": "com.example.tayawaste"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDylld-sHul2FHzgftsRdRWms7-D9QShYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

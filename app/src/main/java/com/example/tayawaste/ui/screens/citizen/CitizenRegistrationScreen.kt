@@ -187,7 +187,7 @@ fun CitizenRegistrationScreen(
                             AppState.userLocation = location.trim()
                             onRegisterSuccess(name.trim(), email.trim(), location.trim())
                         } else {
-                            errorMessage = msg ?: "Email already exists in the database. Please use a different email or log in."
+                            errorMessage = msg ?: "Email already exists. Please use a different email or log in."
                         }
                     }
                 },

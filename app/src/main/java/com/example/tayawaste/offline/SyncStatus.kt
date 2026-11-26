@@ -8,7 +8,7 @@ enum class SyncStatus {
 
     fun getDisplayText(): String {
         return when (this) {
-            PENDING_SYNC -> "Your request uploaded when internet connectivity is restored."
+            PENDING_SYNC -> "Your request has been saved on this device and will automatically upload when internet connectivity is restored."
             SYNCING -> "Uploading your request..."
             SYNCED -> "Your request has been successfully uploaded."
             FAILED -> "Your request could not be synchronized. It will be retried automatically."

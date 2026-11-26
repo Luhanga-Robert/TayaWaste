@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tayawaste.AppState
+import com.example.tayawaste.UserRole
 import com.example.tayawaste.ui.components.ActionRow
 import com.example.tayawaste.ui.components.StatTile
 import com.example.tayawaste.ui.components.TayaTopBar
@@ -42,10 +43,15 @@ fun AdminDashboardScreen(
         TayaTopBar("Admin Dashboard")
 
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            val pendingCount = AppState.pendingCollectors.size.toString()
+            val approvedCount = AppState.collectors.size.toString()
+            val totalUsersCount = AppState.allUsers.count { it.role != UserRole.ADMIN }.toString()
+            val wasteReportsCount = AppState.councilReports.size.toString()
+
             // 2x2 Grid of StatTiles matching Mockup 6
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatTile(
-                    count = AppState.pendingCollectors.size.toString(),
+                    count = pendingCount,
                     label = "Pending Collectors",
                     bgColor = StatusAcceptedBg,
                     textColor = StatusAcceptedText,
@@ -54,7 +60,7 @@ fun AdminDashboardScreen(
                     modifier = Modifier.weight(1f)
                 )
                 StatTile(
-                    count = AppState.collectors.size.toString(),
+                    count = approvedCount,
                     label = "Approved Collectors",
                     bgColor = Color(0xFFE0F2FE),
                     textColor = Color(0xFF0369A1),
@@ -63,12 +69,10 @@ fun AdminDashboardScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
-            val totalUsersCount = (AppState.collectors.size + AppState.pendingCollectors.size +
-                    AppState.councilReports.map { it.reportedBy }.filter { it.isNotBlank() }.distinct().size + 1).toString()
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatTile(
-                    count = AppState.councilReports.size.toString(),
+                    count = wasteReportsCount,
                     label = "Waste Reports",
                     bgColor = Color(0xFFFEE2E2),
                     textColor = Color(0xFFB91C1C),

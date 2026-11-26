@@ -46,8 +46,8 @@ class UniqueEmailAuthTest {
     @Test
     fun login_whenEmailNotRegistered_showsUserNotRegisteredError() {
         val isRegistered = false
-        val errorMessage = if (!isRegistered) "Email already exists in the database. Please use a different email or log in." else ""
+        val errorMessage = if (!isRegistered) "User not registered. Please register to continue" else ""
 
-        assertEquals("Email already exists in the database. Please use a different email or log in.", errorMessage)
+        assertEquals("User not registered. Please register to continue", errorMessage)
     }
 }

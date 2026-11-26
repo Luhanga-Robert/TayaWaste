@@ -126,7 +126,7 @@ fun LoginScreen(
                             if (success) {
                                 onLoginSuccess()
                             } else {
-                                errorMessage = error ?: "User not registered. Please create an account to proceed."
+                                errorMessage = error ?: "User not registered. Please register to continue"
                             }
                         }
                     }

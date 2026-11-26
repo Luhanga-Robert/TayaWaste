@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tayawaste.AppState
 import com.example.tayawaste.CollectorData
+import com.example.tayawaste.UserRole
 import com.example.tayawaste.firebase.FirebaseManager
+import com.example.tayawaste.ui.components.ChipStatus
 import com.example.tayawaste.ui.components.IconCircle
 import com.example.tayawaste.ui.components.StatusChip
 import com.example.tayawaste.ui.components.TayaTopBar
@@ -43,6 +45,20 @@ import com.example.tayawaste.ui.components.TayaTopBar
 @Composable
 fun ManageCollectorsScreen(onBack: () -> Unit = {}) {
     var collectorToRemove by remember { mutableStateOf<CollectorData?>(null) }
+
+    val userCollectors = AppState.allUsers
+        .filter { it.role == UserRole.COLLECTOR && (it.status == "APPROVED" || it.status == "AVAILABLE") }
+        .map {
+            CollectorData(
+                name = it.name,
+                area = it.area.ifBlank { it.location },
+                types = it.wasteTypes.ifBlank { "General" },
+                businessId = it.businessId,
+                status = ChipStatus.AVAILABLE
+            )
+        }
+
+    val displayCollectors = (AppState.collectors + userCollectors).distinctBy { it.businessId }
 
     if (collectorToRemove != null) {
         val target = collectorToRemove!!
@@ -53,7 +69,7 @@ fun ManageCollectorsScreen(onBack: () -> Unit = {}) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        AppState.collectors.remove(target)
+                        AppState.collectors.removeAll { it.businessId == target.businessId }
                         FirebaseManager.removeCollector(target.businessId)
                         collectorToRemove = null
                     }
@@ -72,7 +88,7 @@ fun ManageCollectorsScreen(onBack: () -> Unit = {}) {
     Column(Modifier.fillMaxSize()) {
         TayaTopBar("Manage Collectors", onBack = onBack)
 
-        if (AppState.collectors.isEmpty()) {
+        if (displayCollectors.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -90,7 +106,7 @@ fun ManageCollectorsScreen(onBack: () -> Unit = {}) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(AppState.collectors) { collector ->
+                items(displayCollectors) { collector ->
                     AdminCollectorCard(
                         collector = collector,
                         onRemoveClick = { collectorToRemove = collector }

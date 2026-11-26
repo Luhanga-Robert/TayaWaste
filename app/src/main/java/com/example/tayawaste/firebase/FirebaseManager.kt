@@ -15,6 +15,7 @@ import com.example.tayawaste.CollectorData
 import com.example.tayawaste.CouncilReportData
 import com.example.tayawaste.PendingCollectorData
 import com.example.tayawaste.RequestData
+import com.example.tayawaste.UserData
 import com.example.tayawaste.UserRole
 import com.example.tayawaste.ui.components.ChipStatus
 import com.google.firebase.Firebase
@@ -31,12 +32,14 @@ object FirebaseManager {
     private val db = Firebase.firestore
     private val auth = Firebase.auth
 
+    private var usersListener: ListenerRegistration? = null
     private var collectorsListener: ListenerRegistration? = null
     private var requestsListener: ListenerRegistration? = null
     private var reportsListener: ListenerRegistration? = null
     private var pendingListener: ListenerRegistration? = null
 
     fun startRealtimeSync() {
+        listenToUsers()
         listenToCollectors()
         listenToRequests()
         listenToCouncilReports()
@@ -44,10 +47,57 @@ object FirebaseManager {
     }
 
     fun stopRealtimeSync() {
+        usersListener?.remove()
         collectorsListener?.remove()
         requestsListener?.remove()
         reportsListener?.remove()
         pendingListener?.remove()
+    }
+
+    // --- Users Realtime Listener ---
+    private fun listenToUsers() {
+        usersListener = db.collection("users").addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                Log.e(TAG, "Error listening to users collection", error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                val list = snapshot.documents.mapNotNull { doc ->
+                    val name = doc.getString("name") ?: doc.getString("fullName") ?: return@mapNotNull null
+                    val email = doc.getString("email") ?: doc.getString("emailOrPhone") ?: ""
+                    val phone = doc.getString("phoneNumber") ?: doc.getString("phone") ?: ""
+                    val location = doc.getString("location") ?: ""
+                    val roleStr = doc.getString("role") ?: "CITIZEN"
+                    val role = try {
+                        UserRole.valueOf(roleStr)
+                    } catch (_: Exception) {
+                        UserRole.CITIZEN
+                    }
+                    val status = doc.getString("status") ?: "APPROVED"
+                    val businessId = doc.getString("businessId") ?: ""
+                    val area = doc.getString("area") ?: ""
+                    val wasteTypes = doc.getString("wasteTypes") ?: ""
+                    val availability = doc.getString("availability") ?: ""
+
+                    UserData(
+                        uid = doc.id,
+                        name = name,
+                        email = email,
+                        phoneNumber = phone,
+                        location = location,
+                        role = role,
+                        status = status,
+                        businessId = businessId,
+                        area = area,
+                        wasteTypes = wasteTypes,
+                        availability = availability
+                    )
+                }
+                AppState.allUsers.clear()
+                AppState.allUsers.addAll(list)
+                Log.d(TAG, "Realtime sync: ${list.size} user profiles synchronized from Firestore users collection")
+            }
+        }
     }
 
     // --- Collectors Realtime Listener ---
@@ -95,7 +145,7 @@ object FirebaseManager {
                     val title = doc.getString("title") ?: return@mapNotNull null
                     val dateTime = doc.getString("dateTime") ?: ""
                     val collector = doc.getString("collector") ?: ""
-                    val requestedBy = doc.getString("requestedBy") ?: doc.getString("reportedBy") ?: "John Moyo"
+                    val requestedBy = doc.getString("requestedBy") ?: doc.getString("reportedBy") ?: "Citizen"
                     val description = doc.getString("description") ?: ""
                     val statusStr = doc.getString("status") ?: "PENDING"
                     val location = doc.getString("location") ?: "Lilongwe City"
@@ -612,9 +662,34 @@ object FirebaseManager {
                     "createdAt" to System.currentTimeMillis()
                 )
 
-                batch.set(db.collection("users").document(uid), userData)
+                val newUser = UserData(
+                    uid = uid,
+                    name = name.trim(),
+                    email = sanitizedEmail,
+                    phoneNumber = sanitizedEmail,
+                    location = location,
+                    role = role,
+                    status = status,
+                    businessId = businessId,
+                    area = area,
+                    wasteTypes = wasteTypes,
+                    availability = availability
+                )
+                if (AppState.allUsers.none { it.email.equals(sanitizedEmail, ignoreCase = true) }) {
+                    AppState.allUsers.add(0, newUser)
+                }
+
+                // Write user document to Firestore
+                db.collection("users").document(uid).set(userData)
+                    .addOnSuccessListener {
+                        Log.d(TAG, "User document successfully created at users/$uid")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w(TAG, "Failed to write user doc at users/$uid: ${e.localizedMessage}")
+                    }
+
                 if (userDocId != uid) {
-                    batch.set(db.collection("users").document(userDocId), userData)
+                    db.collection("users").document(userDocId).set(userData)
                 }
 
                 if (role == UserRole.COLLECTOR && businessId.isNotBlank()) {
@@ -626,7 +701,9 @@ object FirebaseManager {
                         wasteTypes = wasteTypes.ifBlank { "General" },
                         availability = availability.ifBlank { "Weekdays" }
                     )
-                    AppState.pendingCollectors.add(0, pendingCollector)
+                    if (AppState.pendingCollectors.none { it.businessId == businessId.trim() }) {
+                        AppState.pendingCollectors.add(0, pendingCollector)
+                    }
 
                     val pendingData = mapOf(
                         "name" to pendingCollector.name,
@@ -634,32 +711,21 @@ object FirebaseManager {
                         "email" to pendingCollector.email,
                         "area" to pendingCollector.area,
                         "wasteTypes" to pendingCollector.wasteTypes,
-                        "availability" to pendingCollector.availability,
+                        "availability" to availability,
                         "createdAt" to System.currentTimeMillis()
                     )
-                    batch.set(db.collection("pendingCollectors").document(businessId.trim()), pendingData)
+                    db.collection("pendingCollectors").document(businessId.trim()).set(pendingData)
                 }
 
-                // Step 2: Commit all database writes in 1 SINGLE network batch round-trip
-                batch.commit()
-                    .addOnSuccessListener {
-                        val dbDuration = System.currentTimeMillis() - dbStart
-                        val totalDuration = System.currentTimeMillis() - totalStart
-                        Log.d(TAG, "PERF: Firestore batch write completed in ${dbDuration}ms")
-                        Log.d(TAG, "PERF: Total registration completed in ${totalDuration}ms")
-                        onResult(true, null)
-                    }
-                    .addOnFailureListener { e ->
-                        val dbDuration = System.currentTimeMillis() - dbStart
-                        Log.e(TAG, "Firestore batch write failed after ${dbDuration}ms", e)
-                        onResult(true, null)
-                    }
+                val totalDuration = System.currentTimeMillis() - totalStart
+                Log.d(TAG, "PERF: Registration completed in ${totalDuration}ms")
+                onResult(true, null)
             }
             .addOnFailureListener { e ->
                 val authDuration = System.currentTimeMillis() - authStart
                 Log.w(TAG, "Auth creation failed after ${authDuration}ms: ${e.localizedMessage}")
                 if (e.message?.contains("already in use", ignoreCase = true) == true) {
-                    onResult(false, "Email already exists in the database. Please use a different email or log in.")
+                    onResult(false, "Email already exists. Please use a different email or log in.")
                 } else {
                     val userDocId = sanitizedEmail.replace(" ", "")
                     val userData = mapOf(
@@ -795,11 +861,11 @@ object FirebaseManager {
                                 onResult(false, "Incorrect password. Please try again.")
                             }
                         } else {
-                            onResult(false, "User not registered. Please create an account to proceed.")
+                            onResult(false, "User not registered. Please register to continue")
                         }
                     }
                     .addOnFailureListener {
-                        onResult(false, e.localizedMessage ?: "Invalid email or password.")
+                        onResult(false, "User not registered. Please register to continue")
                     }
             }
     }

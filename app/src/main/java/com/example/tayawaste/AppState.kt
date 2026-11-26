@@ -29,7 +29,7 @@ data class RequestData(
     val title: String,
     val dateTime: String,
     val collector: String,
-    val requestedBy: String = "John Moyo",
+    val requestedBy: String = "",
     val description: String = "",
     val status: ChipStatus,
     val location: String = "Lilongwe City",
@@ -42,7 +42,7 @@ data class CouncilReportData(
     val id: String = "",
     val type: String,
     val location: String,
-    val councilName: String = "Lilongwe City Council",
+    val councilName: String = "Zomba City Council",
     val description: String,
     val reportedBy: String,
     val status: ChipStatus = ChipStatus.PENDING,
@@ -60,13 +60,27 @@ data class PendingCollectorData(
     val availability: String
 )
 
+data class UserData(
+    val uid: String = "",
+    val name: String = "",
+    val email: String = "",
+    val phoneNumber: String = "",
+    val location: String = "",
+    val role: UserRole = UserRole.CITIZEN,
+    val status: String = "APPROVED",
+    val businessId: String = "",
+    val area: String = "",
+    val wasteTypes: String = "",
+    val availability: String = ""
+)
+
 object AppState {
     var selectedRole: UserRole by mutableStateOf(UserRole.CITIZEN)
     var isLoggedIn: Boolean by mutableStateOf(false)
 
-    var userName: String by mutableStateOf("John Doe")
-    var userEmail: String by mutableStateOf("johndoe@tayawaste.com")
-    var userLocation: String by mutableStateOf("Area 25, Lilongwe")
+    var userName: String by mutableStateOf("")
+    var userEmail: String by mutableStateOf("")
+    var userLocation: String by mutableStateOf("")
 
     // Collector profile info
     var businessId: String by mutableStateOf("CW-00123")
@@ -78,6 +92,7 @@ object AppState {
     var selectedCollector: String by mutableStateOf("Green Future Services")
 
     // Collections / Data (Populated in Real-time from Firebase Firestore)
+    val allUsers = mutableStateListOf<UserData>()
     val collectors = mutableStateListOf<CollectorData>()
     val requests = mutableStateListOf<RequestData>()
     val councilReports = mutableStateListOf<CouncilReportData>()

@@ -233,7 +233,7 @@ fun CollectorRegistrationScreen(
                         if (success) {
                             showPendingDialog = true
                         } else {
-                            errorMessage = msg ?: "Email already exists in the database. Please use a different email or log in."
+                            errorMessage = msg ?: "Email already exists. Please use a different email or log in."
                         }
                     }
                 },

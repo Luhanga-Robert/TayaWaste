@@ -53,7 +53,7 @@ fun AdminProfileScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                InfoItem(Icons.Filled.Email, "Admin Email", "admintayawaste@gmail.com")
+                InfoItem(Icons.Filled.Email, "Admin Email", "bsc-com-24-23@gmail.com")
                 InfoItem(Icons.Filled.Shield, "Role", "Super Admin")
             }
 
